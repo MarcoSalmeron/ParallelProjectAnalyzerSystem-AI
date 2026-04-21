@@ -65,6 +65,11 @@ GRIS_FONDO = colors.HexColor("#F4F7F9")
 # ===============================
 
 @tool
+def tool_obtener_modulos_disponibles() -> List[str]:
+    """Retorna la lista de módulos ERP disponibles"""
+    return [modulo for modulo, _ in INDEX_URLS]
+
+@tool
 async def tool_investigar_version(version: str):
     """
     Ejecuta toda la investigación de una versión:

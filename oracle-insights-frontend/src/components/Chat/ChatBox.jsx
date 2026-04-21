@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MessageItem from './MessageItem';
 
-const ChatBox = ({ messages, onSendMessage, isAnalyzing, onStartAnalysis }) => {
+const ChatBox = ({ messages, onStartAnalysis, resumeAnalysis, isAnalyzing }) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -14,14 +14,21 @@ const ChatBox = ({ messages, onSendMessage, isAnalyzing, onStartAnalysis }) => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!input.trim() || isAnalyzing) return;
-    
-    const query = input.trim();
-    setInput('');
+const handleSubmit = (e) => {
+  e.preventDefault();
+  if (!input.trim() || isAnalyzing) return;
+
+  const query = input.trim();
+  setInput('');
+
+  const lastMsg = messages[messages.length - 1];
+  // Interrupciones
+  if (lastMsg && lastMsg.type === 'interrupt') {
+    resumeAnalysis(query);
+  } else {
     onStartAnalysis(query);
-  };
+  }
+};
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -51,7 +58,7 @@ const ChatBox = ({ messages, onSendMessage, isAnalyzing, onStartAnalysis }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h3 className="text-oracle-text font-medium">Ingeniría Condor Insights</h3>
+            <h3 className="text-oracle-text font-medium">Ingeniería Condor Insights</h3>
             <p className="text-oracle-muted text-sm mt-1 max-w-xs">
               Describe tu consulta sobre Oracle Cloud ERP y nuestros agentes la analizarán
             </p>

@@ -3,6 +3,7 @@ from agents import investigador, analista,redactor
 from langchain_openai import ChatOpenAI
 from schemas import ERPState
 from langgraph.types import interrupt
+from tools.Tools import tool_obtener_modulos_disponibles
 
 from dotenv import load_dotenv
 
@@ -11,15 +12,14 @@ load_dotenv(override=True)
 
 model = ChatOpenAI(model="gpt-4o", temperature=0)
 
-# Hook para pausar el flujo si no hay módulo definido
-def pre_model_hook(state: ERPState):
+# Hook que se ejecuta antes de cada paso del supervisor
+def ask_module_hook(state: ERPState, **kwargs):
+    # Si no hay módulo definido, interrumpimos el flujo
     if not state.erp_module:
-        # Aquí se detiene el grafo y se lanza la pregunta al usuario
-        respuesta = interrupt("¿Qué módulo del ERP deseas analizar?")
-        # Cuando el usuario responde, el flujo se reanuda y se guarda en el estado
-        state.erp_module = respuesta
-
+        return interrupt("Por favor selecciona el módulo ERP que deseas analizar. ")
+    # Si ya está definido, simplemente devolvemos el estado sin cambios
     return state
+
 
 prompt_supervisor = """
 Eres el **Director de Consultoría de Oracle Cloud**. Tu misión es coordinar el flujo de agentes para analizar Oracle Cloud Readiness, persistir los impactos en pgvector y generar un reporte ejecutivo en PDF.
@@ -28,11 +28,11 @@ Tu función es **orquestar a los agentes ANALISTA, INVESTIGADOR y REDACTOR sigui
 
 ---
 
-### INSTRUCCIÓN PREVIA
-
-Antes de iniciar cualquier flujo, **pregunta al usuario sobre qué módulo del ERP desea generar el reporte**.  
-- Si el usuario especifica un módulo, el reporte debe enfocarse solo en ese módulo en específico.  
-- Si el usuario no especifica ningún módulo, procede con un reporte general.
+### INSTRUCCIÓN PREVIA IMPORTANTE
+  
+Antes de iniciar cualquier flujo, **usa la herramienta tool_obtener_modulos_disponibles para mostrar al usuario los módulos ERP disponibles**  luego formula una pregunta al usuario para que elija un módulo. **No continúes el análisis hasta que el usuario responda**. 
+- Si el usuario especifica un módulo, el reporte debe enfocarse solo en ese módulo en específico.    
+- Si el usuario no especifica ningún módulo, procede con un reporte general. 
 
 ---
 
@@ -126,6 +126,7 @@ team = create_supervisor(
     [analista, investigador, redactor],
     model=model,
     prompt=prompt_supervisor,
+    tools=[tool_obtener_modulos_disponibles],
     output_mode="last_message",
-    pre_model_hook=pre_model_hook,
+    #pre_model_hook=ask_module_hook,
 )
